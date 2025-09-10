@@ -1,0 +1,17 @@
+{
+  "name": "ssl-checker-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sslChecker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "config": "^4.1.1",
+    "moment": "^2.30.1"
+  }
+}
