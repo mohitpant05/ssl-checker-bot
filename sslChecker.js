@@ -11,8 +11,8 @@ class DomainService {
   static async getWhiteLabelDomains() {
     try {
       const response = await axios.post(
-        `${api_url}/get_whitelabeled_domains`,
-        { integrationSecret: api_key },
+        `${api_url}/getWLDomains`,
+        {},
         { headers: { "Content-Type": "application/json" } }
       );
       return response.data.domains || [];
@@ -26,6 +26,7 @@ class DomainService {
 class SSLChecker {
   static check(domain) {
     return new Promise((resolve, reject) => {
+      domain = domain.trim();
       domain = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
       const socket = tls.connect(443, domain, { servername: domain }, () => {
