@@ -2,10 +2,39 @@ const tls = require("tls");
 const moment = require("moment");
 const axios = require("axios");
 const config = require("config");
+const { createLogger, format, transports } = require('winston');
+const path = require("path")
+require('winston-daily-rotate-file');
+
+
+const dailyRotateFile = new transports.DailyRotateFile({
+    dirname: path.join(__dirname, 'logs'),
+    filename: 'ssl-bot-%DATE%.log',
+    datePattern: 'YYYY-MM-DD',
+    zippedArchive: false,
+    maxFiles: '5d',
+});
+
+const logger = createLogger({
+    level: 'info',
+    format: format.combine(
+        format.timestamp(),
+        format.printf(
+            info => `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`
+        )
+    ),
+    transports: [
+        dailyRotateFile,
+        new transports.Console()
+    ]
+});
 
 const GOOGLE_CHAT_WEBHOOKS = config.get("GOOGLE_CHAT_WEBHOOKS");
 const api_url = config.get("api_url");
-const api_key = config.get("api_key");
+// const api_key = config.get("api_key");
+
+console.log = (...args) => logger.info(args.join(' '));
+console.error = (...args) => logger.error(args.join(' '));
 
 class DomainService {
   static async getWhiteLabelDomains() {
@@ -13,11 +42,11 @@ class DomainService {
       const response = await axios.post(
         `${api_url}/getWLDomains`,
         {},
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" }, timeout:  60000}
       );
-      return response.data.domains || [];
+      return response.data.data || [];
     } catch (err) {
-      console.error("❌ Failed to fetch domains:", err.message);
+      console.error("❌ Failed to fetch domains:", err);
       return [];
     }
   }
@@ -44,7 +73,7 @@ class SSLChecker {
         const expiryDate = moment(new Date(cert.valid_to));
         const now = moment();
         const daysLeft = expiryDate.diff(now, "days");
-
+        console.log(`✅✅ Domain: ${domain} checked ✅✅`)
         resolve({
           domain,
           validFrom: cert.valid_from,
@@ -71,6 +100,7 @@ class MessageBatcher {
     let currentBatch = "";
 
     messages.forEach((msg) => {
+      if(!msg) return;
       if (Buffer.byteLength(currentBatch + msg, "utf8") > maxSize) {
         batches.push(currentBatch);
         currentBatch = msg;
@@ -130,7 +160,7 @@ class ChatNotifier {
   console.log("🚀 Starting SSL Checker...");
 
   const domains = await DomainService.getWhiteLabelDomains();
-
+  console.log('Number of domains are : ', domains.length)
   if (!domains.length) {
     console.warn("⚠️ No domains found, exiting...");
     return;
@@ -138,7 +168,7 @@ class ChatNotifier {
 
   const results = await Promise.allSettled(domains.map(SSLChecker.check));
 
-  const report = results.filter((result) => {
+  let report = results.map((result) => {
     if (result.status === "fulfilled") {
       const { domain, validFrom, validTo, expiryDate, daysLeft } = result.value;
 
@@ -146,14 +176,15 @@ class ChatNotifier {
         return `Domain: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}`;
       }
       else{
-        return null;
+        return;
       }
       // else{
       //   return `Domain: ${domain} → ✅ Healthy\nCertificate valid until ${expiryDate} (${daysLeft} days left).\nValid From: ${validFrom}\nValid To: ${validTo}`;
       // }
-    } else {
-      return `Domain: ${result.reason.domain} → ❌ Error\n${result.reason.error.message}`;
     }
+    //  else {
+      // return `Domain: ${result.reason.domain} → ❌ Error\n${result.reason.error.message}`;
+    // }
   });
 
   const batches = MessageBatcher.create(report);

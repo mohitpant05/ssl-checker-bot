@@ -1,0 +1,7 @@
+{
+    "GOOGLE_CHAT_WEBHOOKS": [
+        "URL1",
+        "URL2"
+    ],
+    "api_url":"api_url"
+}
