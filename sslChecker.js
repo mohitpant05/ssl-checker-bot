@@ -55,7 +55,9 @@ class DomainService {
 class SSLChecker {
   static check(domain) {
     return new Promise((resolve, reject) => {
-      domain = domain.trim();
+      const user_id = domain.user_id;
+      const email = domain.email
+      domain = domain.domain.trim();
       domain = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
       const socket = tls.connect(443, domain, { servername: domain }, () => {
@@ -75,6 +77,8 @@ class SSLChecker {
         const daysLeft = expiryDate.diff(now, "days");
         console.log(`✅✅ Domain: ${domain} checked ✅✅`)
         resolve({
+          user_id,
+          email,
           domain,
           validFrom: cert.valid_from,
           validTo: cert.valid_to,
@@ -170,10 +174,10 @@ class ChatNotifier {
 
   let report = results.map((result) => {
     if (result.status === "fulfilled") {
-      const { domain, validFrom, validTo, expiryDate, daysLeft } = result.value;
+      const { domain, validFrom, validTo, expiryDate, daysLeft, user_id, email } = result.value;
 
       if(daysLeft <= 15){
-        return `Domain: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}`;
+        return `Domain: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}\nUser Id: ${user_id}\nEmail: ${email}`;
       }
       else{
         return;
