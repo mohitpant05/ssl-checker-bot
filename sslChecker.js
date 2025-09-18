@@ -170,7 +170,18 @@ class ChatNotifier {
     return;
   }
 
-  const results = await Promise.allSettled(domains.map(SSLChecker.check));
+  // Promise.allSettled polyfill for Node 10.9.0 compatibility
+  const promiseAllSettled = (promises) => {
+    return Promise.all(
+      promises.map(promise =>
+        Promise.resolve(promise)
+          .then(value => ({ status: 'fulfilled', value }))
+          .catch(reason => ({ status: 'rejected', reason }))
+      )
+    );
+  };
+
+  const results = await promiseAllSettled(domains.map(SSLChecker.check));
 
   let report = results.map((result) => {
     if (result.status === "fulfilled") {
