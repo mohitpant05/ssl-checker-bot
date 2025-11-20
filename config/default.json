@@ -1,7 +1,6 @@
 {
     "GOOGLE_CHAT_WEBHOOKS": [
-        "URL1",
-        "URL2"
+        "https://chat.googleapis.com/v1/spaces/AAQAH93XrIU/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=hiHv1SJdqNjLmG-U4wbWizw8NasNmdW-5eby-xROV7U"
     ],
-    "api_url":"api_url"
+    "api_url":"https://node1-api.tookanapp.com"
 }

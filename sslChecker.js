@@ -57,6 +57,8 @@ class SSLChecker {
     return new Promise((resolve, reject) => {
       const user_id = domain.user_id;
       const email = domain.email
+      let value = domain.value;
+      let formId = domain.form_id;
       domain = domain.domain.trim();
       domain = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
@@ -80,6 +82,8 @@ class SSLChecker {
           user_id,
           email,
           domain,
+          value,
+          formId,
           validFrom: cert.valid_from,
           validTo: cert.valid_to,
           expiryDate: expiryDate.format("YYYY-MM-DD HH:mm:ss"),
@@ -182,17 +186,18 @@ class ChatNotifier {
   };
 
   const results = await promiseAllSettled(domains.map(SSLChecker.check));
-
-  let report = results.map((result) => {
+  let domainResults = [];
+  let formDomainResults = [];
+  results.forEach((result) => {
     if (result.status === "fulfilled") {
-      const { domain, validFrom, validTo, expiryDate, daysLeft, user_id, email } = result.value;
+      const { domain, validFrom, validTo, expiryDate, daysLeft, user_id, email, value,formId } = result.value;
 
-      if(daysLeft <= 15){
-        return `Domain: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}\nUser Id: ${user_id}\nEmail: ${email}`;
+      if(daysLeft <= 5 && value == 1 ){
+        domainResults.push(`Domain: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}\nUser Id: ${user_id}\nEmail: ${email}`);
+      }else if (daysLeft <= 5 && value == 2){
+        formDomainResults.push(`Form Domain: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}\nUser Id: ${user_id}\nEmail: ${email}\nForm Id: ${formId}`);
       }
-      else{
-        return;
-      }
+
       // else{
       //   return `Domain: ${domain} → ✅ Healthy\nCertificate valid until ${expiryDate} (${daysLeft} days left).\nValid From: ${validFrom}\nValid To: ${validTo}`;
       // }
@@ -202,12 +207,17 @@ class ChatNotifier {
     // }
   });
 
-  const batches = MessageBatcher.create(report);
-  console.log(`📦 Prepared ${batches.length} message batch(es)`);
+  const domainBatches = MessageBatcher.create(domainResults);
+  const formDomainBatches = MessageBatcher.create(formDomainResults);
+  console.log(`📦 Prepared ${domainBatches.length} message batch(es) for domain result`);
 
-  for (let i = 0; i < batches.length; i++) {
-    await ChatNotifier.sendBatch(batches[i], i, batches.length);
+  for (let i = 0; i < domainBatches.length; i++) {
+    await ChatNotifier.sendBatch(domainBatches[i], i, domainBatches.length);
   }
+    for (let i = 0; i < formDomainBatches.length; i++) {
+    await ChatNotifier.sendBatch(formDomainBatches[i], i, formDomainBatches.length);
+  }
+
 
   console.log("✅ SSL Checker completed.");
 })();
