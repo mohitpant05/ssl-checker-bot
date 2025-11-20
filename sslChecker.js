@@ -55,9 +55,10 @@ class DomainService {
 class SSLChecker {
   static check(domain) {
     return new Promise((resolve, reject) => {
-      domain = domain.trim();
+      const user_id = domain.user_id;
+      const email = domain.email
+      domain = domain.booking_form.trim();
       domain = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-
       const socket = tls.connect(443, domain, { servername: domain }, () => {
         const cert = socket.getPeerCertificate();
 
@@ -75,6 +76,8 @@ class SSLChecker {
         const daysLeft = expiryDate.diff(now, "days");
         console.log(`✅✅ Domain: ${domain} checked ✅✅`)
         resolve({
+          user_id,
+          email,
           domain,
           validFrom: cert.valid_from,
           validTo: cert.valid_to,
@@ -83,7 +86,6 @@ class SSLChecker {
         });
         socket.end();
       });
-
       socket.on("error", (err) => {
         reject({
           domain,
@@ -161,19 +163,31 @@ class ChatNotifier {
 
   const domains = await DomainService.getWhiteLabelDomains();
   console.log('Number of domains are : ', domains.length)
+  console.log(JSON.stringify(domains[0]))
   if (!domains.length) {
     console.warn("⚠️ No domains found, exiting...");
     return;
   }
 
-  const results = await Promise.allSettled(domains.map(SSLChecker.check));
+  // Promise.allSettled polyfill for Node 10.9.0 compatibility
+  const promiseAllSettled = (promises) => {
+    return Promise.all(
+      promises.map(promise =>
+        Promise.resolve(promise)
+          .then(value => ({ status: 'fulfilled', value }))
+          .catch(reason => ({ status: 'rejected', reason }))
+      )
+    );
+  };
+
+  const results = await promiseAllSettled(domains.map(domain => SSLChecker.check(domain)));
 
   let report = results.map((result) => {
     if (result.status === "fulfilled") {
-      const { domain, validFrom, validTo, expiryDate, daysLeft } = result.value;
+      const { domain, validFrom, validTo, expiryDate, daysLeft, user_id, email } = result.value;
 
       if(daysLeft <= 15){
-        return `Domain: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}`;
+        return `Booking Form: ${domain} → ⚠️ Expiring Soon\nCertificate expires in ${daysLeft} days (on ${expiryDate}).\nValid From: ${validFrom}\nValid To: ${validTo}\nUser Id: ${user_id}\nEmail: ${email}`;
       }
       else{
         return;

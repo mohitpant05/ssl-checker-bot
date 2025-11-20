@@ -1,0 +1,17 @@
+WARNING: No configurations found in configuration directory:/home/kali/config
+WARNING: To disable this warning set SUPPRESS_NO_CONFIG_WARNING in the environment.
+/home/kali/PERSONAL/regular/ssl-checker-bot/node_modules/config/lib/config.js:146
+    throw new Error('Configuration property "' + property + '" is not defined');
+    ^
+
+Error: Configuration property "GOOGLE_CHAT_WEBHOOKS" is not defined
+    at Config.get (/home/kali/PERSONAL/regular/ssl-checker-bot/node_modules/config/lib/config.js:146:11)
+    at Object.<anonymous> (/home/kali/PERSONAL/regular/ssl-checker-bot/sslChecker.js:32:37)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49
+
+Node.js v20.19.2
